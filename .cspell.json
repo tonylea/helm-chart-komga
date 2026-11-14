@@ -1,0 +1,30 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "dictionaries": [
+    "softwareTerms"
+  ],
+  "ignorePaths": [
+    ".git/**",
+    ".husky/**",
+    "node_modules/**",
+    "CHANGELOG.md",
+    "package-lock.json"
+  ],
+  "words": [
+    "appVersion",
+    "commitlint",
+    "gotson",
+    "helmignore",
+    "hostnames",
+    "httproute",
+    "komga",
+    "kubeconform",
+    "Lucene",
+    "nindent",
+    "secretlint",
+    "tonylea",
+    "unittest",
+    "Xmx"
+  ]
+}
