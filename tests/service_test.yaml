@@ -1,0 +1,21 @@
+suite: Service
+release:
+  name: komga
+templates:
+  - templates/service.yaml
+tests:
+  - it: serves Komga's port to the pod's http port
+    asserts:
+      - equal:
+          path: spec.ports
+          value:
+            - name: http
+              port: 25600
+              targetPort: http
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: komga
+            app.kubernetes.io/instance: komga
+      - notExists:
+          path: spec.type

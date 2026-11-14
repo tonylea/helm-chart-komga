@@ -1,0 +1,43 @@
+image:
+  repository: gotson/komga
+  # Empty uses the chart's appVersion.
+  tag: ""
+
+# The user and group Komga runs as; /config's volume is given to the group.
+# Change them when the libraries are owned by someone else and Komga has to write to them.
+user: 1000
+group: 1000
+
+# Passed as JAVA_TOOL_OPTIONS, for example -Xmx4g to cap the heap.
+javaToolOptions: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 1Gi
+
+# /config: Komga's SQLite databases (thumbnails included), Lucene index and logs.
+# Komga refuses to start with its databases on a network filesystem, so the storage class must give block storage.
+# An empty storageClassName uses the cluster's default class.
+persistence:
+  size: 2Gi
+  storageClassName: ""
+
+# Folders Komga's libraries are added from, each mounted at its mountPath.
+# volume is any Kubernetes volume source; readOnly defaults to false, which Komga's file features need.
+#   - name: comics
+#     mountPath: /data/comics
+#     readOnly: false
+#     volume:
+#       hostPath:
+#         path: /srv/comics
+#         type: Directory
+libraries: []
+
+affinity: {}
+
+# A Gateway API HTTPRoute to the web UI.
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
