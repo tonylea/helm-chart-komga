@@ -22,6 +22,7 @@
     "kubeconform",
     "Lucene",
     "nindent",
+    "OPDS",
     "secretlint",
     "tonylea",
     "unittest",
