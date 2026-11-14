@@ -57,7 +57,7 @@ Set the memory request from what Komga is seen using.
 
 Komga runs as user and group `1000` by default, the user in upstream's examples.
 It needs no root: it listens above port 1024 and writes only to `/config` and its libraries.
-The pod's `fsGroup` is the same group, so `/config`'s volume is writable.
+The pod's `fsGroup` is the same group, so Komga can write to `/config`'s volume.
 
 Komga writes to its libraries when books or series are deleted, converted to CBZ, have their extensions repaired or duplicate pages removed, and when books are imported.
 Set `user` and `group` to the libraries' owner when it isn't 1000 and Komga has to write there.
