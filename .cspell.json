@@ -13,6 +13,7 @@
   ],
   "words": [
     "appVersion",
+    "CIFS",
     "commitlint",
     "gotson",
     "helmignore",
@@ -26,6 +27,7 @@
     "secretlint",
     "tonylea",
     "unittest",
+    "websecure",
     "Xmx"
   ]
 }
