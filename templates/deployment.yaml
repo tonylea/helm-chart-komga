@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "komga.labels" . | nindent 4 }}
+spec:
+  # /config is ReadWriteOnce, so the old pod stops before the new one starts.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "komga.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "komga.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.user }}
+        runAsGroup: {{ .Values.group }}
+        fsGroup: {{ .Values.group }}
+      containers:
+        - name: komga
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- with .Values.javaToolOptions }}
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ . | quote }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 25600
+          # Start-up runs the database migrations before Komga listens, so it gets 5 minutes.
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            {{- range .Values.libraries }}
+            - name: library-{{ required "each library needs a name" .name }}
+              mountPath: {{ required "each library needs a mountPath" .mountPath }}
+              readOnly: {{ .readOnly | default false }}
+            {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-config
+        {{- range .Values.libraries }}
+        - name: library-{{ .name }}
+          {{- toYaml (required "each library needs a volume" .volume) | nindent 10 }}
+        {{- end }}

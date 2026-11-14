@@ -1,0 +1,6 @@
+# One library, so the list's mounts and volumes are rendered and installed.
+libraries:
+  - name: comics
+    mountPath: /data/comics
+    volume:
+      emptyDir: {}
