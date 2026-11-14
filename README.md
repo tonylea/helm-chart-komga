@@ -1,4 +1,4 @@
-# helm-chart-komga
+# Komga Helm Chart
 
 Deploys [Komga](https://komga.org/) from its official image, [`gotson/komga`](https://github.com/gotson/komga).
 Komga scans folders of comics, manga, BDs and magazines, and serves them to read in the browser, over OPDS and through its API.
