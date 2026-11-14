@@ -1,0 +1,191 @@
+suite: Deployment
+release:
+  name: komga
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: runs one replica of the chart's appVersion, stopping the old pod first
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: gotson/komga:1.30.1
+
+  - it: uses the image tag when one is set
+    set:
+      image.tag: "1.29.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: gotson/komga:1.29.0
+
+  - it: runs as user and group 1000, with /config's volume given to the group
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+
+  - it: runs as another user and group when set
+    set:
+      user: 1026
+      group: 100
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 1026
+            runAsGroup: 100
+            fsGroup: 100
+
+  - it: sets no environment without JVM options
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env
+
+  - it: passes JVM options as JAVA_TOOL_OPTIONS
+    set:
+      javaToolOptions: -XX:G1PeriodicGCInterval=300000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env
+          value:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:G1PeriodicGCInterval=300000
+
+  - it: probes /actuator/health, giving start-up 5 minutes
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /actuator/health
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /actuator/health
+
+  - it: requests CPU and memory, with no limits
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 100m
+              memory: 1Gi
+
+  - it: mounts only the config claim without libraries
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /config
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: config
+              persistentVolumeClaim:
+                claimName: komga-config
+
+  - it: mounts each library's volume, read-write unless readOnly is true
+    set:
+      libraries:
+        - name: comics
+          mountPath: /data/comics
+          volume:
+            hostPath:
+              path: /srv/comics
+              type: Directory
+        - name: manga
+          mountPath: /data/manga
+          readOnly: true
+          volume:
+            persistentVolumeClaim:
+              claimName: manga
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /config
+            - name: library-comics
+              mountPath: /data/comics
+              readOnly: false
+            - name: library-manga
+              mountPath: /data/manga
+              readOnly: true
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: config
+              persistentVolumeClaim:
+                claimName: komga-config
+            - name: library-comics
+              hostPath:
+                path: /srv/comics
+                type: Directory
+            - name: library-manga
+              persistentVolumeClaim:
+                claimName: manga
+
+  - it: fails for a library without a name
+    set:
+      libraries:
+        - mountPath: /data/comics
+          volume:
+            emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: each library needs a name
+
+  - it: fails for a library without a mountPath
+    set:
+      libraries:
+        - name: comics
+          volume:
+            emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: each library needs a mountPath
+
+  - it: fails for a library without a volume
+    set:
+      libraries:
+        - name: comics
+          mountPath: /data/comics
+    asserts:
+      - failedTemplate:
+          errorMessage: each library needs a volume
+
+  - it: sets affinity when given
+    set:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: example.com/drives
+                    operator: In
+                    values: ["true"]
+    asserts:
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key
+          value: example.com/drives
+
+  - it: sets no affinity by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.affinity
